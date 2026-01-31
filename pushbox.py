@@ -18,27 +18,42 @@ BOX = '$'
 BOX_ON_TARGET = '*'
 TARGET = '.'
 
-# Level layout
-LEVEL = [
-    "########",
-    "#      #",
-    "# $ $  #",
-    "# $@$  #",
-    "#  .   #",
-    "# ...  #",
-    "#      #",
-    "########",
+# Level layouts
+LEVELS = [
+    # Level 1
+    [
+        "########",
+        "#      #",
+        "# $ $  #",
+        "# $@$  #",
+        "#  .   #",
+        "# ...  #",
+        "#      #",
+        "########",
+    ],
+    # Level 2
+    [
+        "  ######",
+        "###    #",
+        "#  $   #",
+        "# #$ # #",
+        "# . .$ #",
+        "# #@ # #",
+        "#  . ###",
+        "########",
+    ],
 ]
 
 
 class Game:
-    def __init__(self, level):
+    def __init__(self, level_index=0):
+        self.level_index = level_index
         self.walls = set()
         self.targets = set()
         self.boxes = set()
         self.player = None
         self.moves = 0
-        self.parse_level(level)
+        self.parse_level(LEVELS[level_index])
 
     def parse_level(self, level):
         """Parse the level string into game objects."""
@@ -68,7 +83,7 @@ class Game:
         print("\033[H\033[J", end="")  # Clear screen
         print("Push Box Game")
         print("Controls: WASD or Arrow Keys | Q to Quit | R to Restart")
-        print(f"Moves: {self.moves}")
+        print(f"Level: {self.level_index + 1}/{len(LEVELS)} | Moves: {self.moves}")
         print()
 
         for y in range(self.height):
@@ -129,8 +144,15 @@ class Game:
         return self.boxes == self.targets
 
     def reset(self):
-        """Reset the level."""
-        self.__init__(LEVEL)
+        """Reset the current level."""
+        self.__init__(self.level_index)
+
+    def next_level(self):
+        """Advance to the next level. Returns True if there is a next level."""
+        if self.level_index + 1 < len(LEVELS):
+            self.__init__(self.level_index + 1)
+            return True
+        return False
 
 
 def get_key():
@@ -149,15 +171,20 @@ def get_key():
 
 
 def main():
-    game = Game(LEVEL)
+    game = Game()
 
     while True:
         game.render()
 
         if game.is_won():
-            print("Congratulations! You won!")
-            print(f"Total moves: {game.moves}")
-            print("Press R to restart or Q to quit.")
+            if game.level_index + 1 < len(LEVELS):
+                print(f"Level {game.level_index + 1} complete!")
+                print(f"Moves: {game.moves}")
+                print("Press N for next level, R to restart, or Q to quit.")
+            else:
+                print("Congratulations! You beat all levels!")
+                print(f"Total moves: {game.moves}")
+                print("Press R to restart or Q to quit.")
 
         key = get_key().lower()
 
@@ -170,6 +197,8 @@ def main():
             game.move(-1, 0)
         elif key in ('d', '\x1b[c'):  # Right
             game.move(1, 0)
+        elif key == 'n' and game.is_won():  # Next level
+            game.next_level()
         elif key == 'r':  # Restart
             game.reset()
         elif key == 'q' or key == '\x03':  # Quit (q or Ctrl+C)
